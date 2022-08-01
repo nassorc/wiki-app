@@ -1,9 +1,16 @@
 const express = require('express');
 const showdown = require('showdown');
 const path = require('path');
+
+const wikiRouter = require('./routes/wikis');
+
 const app = express();
 
-app.use(express.static(path.join(__dirname, '..', 'client', 'public')))
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'))
+
+app.use(express.urlencoded({ extended: true }));
 
 let entries = [
     {
@@ -19,18 +26,16 @@ let entries = [
         content: '# JS docs \n --- \n JS is trash. \n `console.log(\'hello0\')` '
     }
 ]
+const WikiModel = require('./model/wiki-entry-model')
+app.get('/', async (req, res) => {
+    const [result, _ ] = await WikiModel.findAll()
+    console.log(result)
+    // return index ejs and all wiki entries
+    
+    res.render('index', {entries: entries});
+})
+app.use('/wiki', wikiRouter);
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'client', 'public', 'index.html'))
-})
-app.get('/wiki/:name', (req, res) => {
-    const param = req.params.name;
-    const entry = entries.find(item => item.name === param);
-    const converter = new showdown.Converter();
-    const content = entry.content;
-    const html = converter.makeHtml(content);
-    res.status(200).json({data:html});
-})
 
 app.listen(3000, () => {
     console.log('listening on port 3000');
