@@ -1,49 +1,27 @@
 const router = require('express').Router();
-
-
-let entries = [
-    {
-        id: 1,
-        name: 'html',
-        title: 'HTML markup language',
-        content: '# Hello world\n *** ## Html is a markup language.'
-    },
-    {
-        id: 2,
-        name: 'javascript',
-        title: 'The javascript language',
-        content: '# JS docs \n --- \n JS is trash. \n `console.log(\'hello0\')` '
-    }
-]
-
-router.get('/', (req, res) => {
-    console.log('router')
-})
+const showdown = require('showdown');
+const WikiModel = require('../model/wiki-entry-model');
 
 router.get('/new', (req, res) => {
     res.render('new')
 })
 router.post('/new', (req, res) => {
-    const { title, markdown } = req.body;
+    const { title, description, markdown } = req.body;
 
-    const newEntry = {
-        id: entries.length + 1,
-        title,
-        markdown
-    }
-    entries.push(newEntry)
-
-    console.log(entries)
+    const obj = new WikiModel(title, description, markdown);
+    obj.save();
 
     return res.status(201).redirect('/')
 })
-router.get('/:id', (req, res) => {
-    const param = req.params.id;
-    const entry = entries.find(item => item.id === param);
+router.get('/:id', async (req, res) => {
+    const id = req.params.id;
+    let [foundEntry, _] = await WikiModel.findOne(id);
+    if(!foundEntry || foundEntry.length < 1) return res.sendStatus(404)
+    foundEntry = foundEntry[0];
     const converter = new showdown.Converter();
-    const content = entry.content;
+    const content = foundEntry['entry_markdown'];
     const html = converter.makeHtml(content);
-    console.log(id)
+    return res.status(200).render('wiki', {html})    
 })
 router.get('/:name', (req, res) => {
     const param = req.params.name;
